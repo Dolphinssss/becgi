@@ -17,7 +17,9 @@ def submissions_list():
 
 class SubmitForm(Form):
     bms_name = TextField("Title", validators=[DataRequired()])
-    bms_author = TextField("BMS author(s) ((bga, movie, music, etc...): author, comma separated)")
+    bms_author = TextField("Artist(s)", validators=[DataRequired()])
+    bga_author = TextField("BGA author(s)")
+    description = TextAreaField("Description (1024 chars)", validators=[DataRequired()])
     bms_link = URLField("Download URL", validators=[url(), DataRequired()])
     captcha = RecaptchaField()
 
@@ -39,8 +41,10 @@ def handle_bms_submission():
     if form.validate_on_submit():
         name = form.bms_name.data
         author = form.bms_author.data
+        bga_author = form.bga_author.data
+        description = form.description.data
         link = form.bms_link.data
-        database.insert_entry(name, author, link)
+        database.insert_entry(name, author, bga_author, description, link)
         return render_template("submit_success.html", name=name, author=author, link=link, success=True)
     return render_template("submit_success.html", success=False)
 
@@ -64,11 +68,13 @@ def evt_songs():
 def sng_impressions(id, form=None):
     if form is None:
         form = ImpressionForm()
+    impressions = database.get_impressions(id)
     return render_template("songimpressions.html",
-        impressions=database.get_impressions(id),
+        impressions=impressions,
         song=database.get_song_by_id(id),
         rating=database.get_song_rating(id),
-        form=form)
+        form=form,
+        impression_count=len(impressions))
 
 @app.route("/impressions/id/submit/<id>", methods=["POST"])
 def submit_impression(id):
